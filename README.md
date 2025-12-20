@@ -86,5 +86,4 @@ http://127.0.0.1:5000 にアクセスしてください
 - **Language:** Python 3.11 (venvにより環境を分離)
 - **Framework:** Flask 3.0.3
 - **Library:** - Pandas 2.0.3 (CSV解析)
-- SQLAlchemy 2.0.41 (データベース連携用 ※今後使用予定)
 - **Frontend:** HTML5 / CSS3
