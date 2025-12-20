@@ -1,46 +1,47 @@
 from flask import Flask, render_template, request # requestを追加
 import pandas as pd # pandasをインポート
-import io # メモリ上でファイルを扱うための道具
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 app = Flask(__name__)
 
-@app.route('/')
+# データベースの保存先(同じフォルダ内の csv_history.db というファイルに保存する)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///csv_history.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+# データベースの設計図(履歴を保存するテーブル)
+class UploadHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(100), nullable=False) # ファイル名
+    upload_at = db.Column(db.DateTime, default=datetime.now) # アップロード日時
+
+# データベースファイルを自動作成する魔法の命令
+with app.app_context():
+    db.create_all()
+
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    # templatesフォルダの中のindex.htmlを表示させる
-    return render_template('index.html')
+    data = None
+    if request.method == 'POST':
+        file = request.files.get('file')
+        if file and file.filename.endswith('.csv'):
+            # 1. データベースに履歴を保存
+            new_history = UploadHistory(filename=file.filename)
+            db.session.add(new_history)
+            db.session.commit()
 
-# アップロードされたファイルを受け取るための「住所」を作る
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    # 画面から送られてきたファイルを取得
-    file = request.files.get('file')
+            # 2. CSVを読み込んで表示
+            df = pd.read_csv(file)
+            data = df.to_html(classes='table table-striped', index=False, border=1)
 
-    if file and file.filename.endswith('.csv'):
-        # 1. アップロードされたCSVを読み込む
-        # (ファイルの実体ではなく「データの中身」を直接読み込んでいます)
-        df = pd.read_csv(file)
+    # --- ここを追加:データベースからすべての履歴を取得する ---
+    histories = UploadHistory.query.order_by(UploadHistory.upload_at.desc()).all()
+    # -------------------------------------------------
 
-        # 2. 前回の加工ロジックを実行!
-        # 名前を大文字にする (カラム名が 'name' の場合)
-        if 'name' in df.columns:
-            df['name'] = df['name'].str.upper()
-
-        # 年齢を+1する (カラム名が 'age' の場合)
-        if 'age' in df.columns:
-            # errors='coerce' は、もし数字じゃない文字が入っていてもエラーにせず無視する
-            df['age'] = pd.to_numeric(df['age'], errors='coerce') + 1
-
-        # 3. 加工した結果を「HTMLの表」に変換する
-        # index=False は、左端の行番号を表示しない設定です
-        data_html = df.to_html(classes='table table-striped', index=False)
-
-        return f"""
-            <h1>加工完了!</h1>
-            <div style="margin-bottom: 20px;">{data_html}</div>
-            <a href="/">戻る</a>
-        """
-    
-    return "CSVファイルをアップロードしてください"
+    # histories=histories を追加してHTMLに送る
+    return render_template('index.html', data=data, histories=histories)
 
 if __name__ == "__main__":
     app.run(debug=True)
