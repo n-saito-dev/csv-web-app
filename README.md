@@ -43,9 +43,13 @@ cd csv-web-app
 
 ### 2. 仮想環境の作成と起動 (推奨)
 ```bash
+# Mac / Linux の場合
 python -m venv venv
-source venv/bin/activate  # Mac / Linuxの場合
-# .\venv\Scripts\activate  # Windowsの場合
+source venv/bin/activate
+
+# Windows の場合
+python -m venv venv
+.\venv\Scripts\activate
 ```
 ### 3. 必要なライブラリの一括インストール
 ```bash
