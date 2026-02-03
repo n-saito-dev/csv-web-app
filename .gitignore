@@ -1,4 +1,7 @@
+.venv/
 venv/
+ENV/
+env/
 .DS_Store
 __pycache__/
 *.csv
